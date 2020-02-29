@@ -1,0 +1,702 @@
+---
+title: "chap2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### The Art of R Programming: A Tour of Statistical Software Design Book by Norman Matloff
+
+## 2.1 Scalars, Vectors, Arrays, and Matrices
+```{r}
+x <- 8
+mode(x)
+typeof(x)
+```
+#### 2.1.1 Adding and Deleting Vector Elements
+```{r}
+x <- c(88,5,12,13)
+x
+```
+```{r}
+x <- c(x[1:3], 168, x[4])  # we created a new vector and stored that vector in x
+x 
+```
+
+#### 2.1.2 Obtaining the Length of a Vector
+```{r}
+length(x)
+```
+
+```{r}
+first1 <- function(x) {
+  for (i in seq(x)) {  # assuming we are sure there is such a value
+    if (x[i] == 1)
+      break
+  }
+  return(i)
+}
+```
+
+```{r}
+y <- c(4, 3, 5, 2, 1)
+first1(y)
+```
+
+```{r}
+z <- c()
+first1(z)
+```
+
+#### 2.1.3 Matrices and Arrays as Vectors
+Arrays and matrices (and even lists, in a sense) are actually vectors
+```{r}
+m <- rbind(c(1, 2), c(3, 4))    # or cbind(c(1, 3), c(2, 4))
+m + 10:13    # adding (10, 11, 12, 13)
+```
+
+## 2.2 Declarations
+As with most scripting languages (such as Python and Perl), you do not declare variables in R.
+```{r}
+h <- c(5, 12)
+h
+```
+
+However, if you reference specific elements of a vector, you must warn R by
+declare what y is. e.g. y <-vector(length=*)
+```{r}
+y <- vector(length = 2)
+y[1] <- 5
+y[2] <- 12
+y
+```
+
+## 2.3 Recycling
+```{r}
+c(1, 2, 4) + c(6, 0, 9, 20, 22)    # equivalent to c(1, 2, 4, 1, 2) + c(6, 0, 9, 20, 22)
+```
+
+```{r}
+x <- rbind(c(1, 4), c(2, 5), c(3, 6))
+x
+```
+
+```{r}
+x + c(1, 2)   # equivalent to x + c(1, 2, 1, 2, 1, 2)
+```
+
+## 2.4 Common Vector Operations
+#### 2.4.1 Vector Arithmetic and Logical Operations
+```{r}
+"+"(2, 3)    # 2 + 3
+```
+
+```{r}
+c(1, 2, 4) + c(5, 0, -1)    # element-wise
+```
+
+```{r}
+c(1, 2, 4) * c(5, 0, -1)    # element-wise
+```
+
+```{r}
+c(1, 2, 4) / c(5, 4, -1)    # element-wise
+```
+
+```{r}
+c(1, 2, 4) %% c(5, 4, -1)    # element-wise
+```
+
+#### 2.4.2 Vector Indexing
+```{r}
+y <- c(1.2, 3.9, 0.4, 0.12)
+y[c(1,3)]  # extract elements 1 and 3 of y
+v <- 3:4
+y[v]
+```
+```{r}
+y[c(1, 1, 3)]    # duplicates are allowed
+```
+```{r}
+y[-1]    # exclude element 1
+```
+```{r}
+a <- y[1:(length(y) - 1)]    # we wish to pick up all elements of a vector y except for the last
+a
+```
+```{r}
+y[-length(y)]    # equivalent to y[1:(length(y) - 1)] 
+```
+
+#### 2.4.3 Generating Useful Vectors with the : Operator
+```{r}
+5:8
+```
+```{r}
+5:1
+```
+
+```{r}
+i <- 2
+1:i - 1    # equivalent to (1:i) - 1, not 1:(i - 1)
+```
+```{r}
+(1:i) - 1
+```
+
+```{r}
+1:(i - 1)
+```
+
+#### 2.4.4 Generating Vector Sequences with seq()
+```{r}
+seq(from = 12, to = 30, by = 3)
+```
+
+```{r}
+seq(from = 1, to = 2, length = 10)
+```
+
+#### 2.4.5 Repeating Vector Constants with rep()
+```{r}
+x <- rep(8, 4)
+x
+```
+```{r}
+rep(1:3, 2)
+```
+each!
+```{r}
+rep(c(5, 12, 13), each=2)
+```
+
+## 2.5 Using all() and any()
+```{r}
+x <- 1:10
+any(x > 8)
+any(x > 88)
+all(x > 8)
+all(x > 0)
+```
+
+#### 2.5.1 Extended Example: Finding Runs of Consecutive Ones
+Find runs of consecutive 1s in vectors that consist just of 1s and 0s. 
+In the vector (1,0,0,1,1,1,0,1,1), for instance, there is a run of length 3 starting at index 4, and runs of length 2 beginning at indices 4, 5, and 8. 
+```{r}
+findruns <- function(x, k) {
+  n <- length(x)
+  runs <- NULL
+  for (i in 1:(n - k + 1)) {
+    if (all(x[i:(i + k - 1)] == 1))
+      runs <- c(runs, i)    # Vector allocation is time consuming. it slows down
+  }
+  return(runs)
+  }
+```
+
+```{r}
+y <- c(1, 0, 0, 1, 1, 1, 0, 1, 1)
+findruns(y, 3)
+findruns(y, 2)
+findruns(y, 6)
+```
+
+One alternative is to preallocate the memory space.
+```{r}
+findruns1 <- function(x, k) {
+  n <- length(x)
+  runs <- vector(length = n)  # instead of runs <- NULL, preallocate the memory space
+  count <- 0
+  for (i in 1:(n - k + 1)) {
+    if (all(x[i:(i + k - 1)] == 1)) {
+      count <- count + 1
+      runs[count] <- i
+    }
+  }
+  if (count > 0) {
+    runs <- runs[1:count]    # to remove the unused portion of the vector
+  }
+  else
+    runs <- NULL
+  return(runs)
+}
+```
+
+```{r}
+findruns1(y, 3)
+findruns1(y, 2)
+findruns1(y, 6)
+```
+
+#### 2.5.2 Extended Example: Predicting Discrete-Valued Time Series
+Suppose we observe 0- and 1-valued data, one per time period.  
+If the number of 1s in the previous k time periods is at least k/2, we’ll predict the next value to be 1; otherwise, our prediction is 0. For instance, if k = 3 and the data for the last three periods is 1,0,1, we’ll predict the next period to be a 1.
+```{r}
+pred_a <- function(x, k) {
+  n <- length(x)
+  k2 <- k/2
+  pred <- vector(length = n - k)    # our predicted values
+  for (i in 1:(n - k)) {
+    if (sum(x[i:(i + k - 1)]) > k2)    
+      pred[i] <- 1 
+    else
+      pred[i] <- 0
+  }
+  print(pred)
+  actual = x[(k + 1):n]    # x[(k + 1):n] is the actual value either 0 or 1
+  abs_error = abs(pred - actual)     # absolute error
+  res = mean(abs_error)    # mean absoulte error
+  return(res)
+}
+```
+
+```{r}
+data <- c(1, 0, 1, 0, 1, 0, 1, 1, 0, 1)
+length(data)
+pred_a(data, 3)
+```
+
+```{r}
+pred_b <- function(x, k) {
+  n <- length(x)
+  k2 <- k/2
+  pred <- vector(length = n - k)    # our predicted values
+  
+  i <- 1    # first i
+  sm <- sum(x[1:k])    # first sum
+  if (sm >= k2) pred[i] <- 1 else pred[i] <- 0
+
+  if (n - k >= 2) {
+    for (i in 2:(n - k)) {     # i starts from 2
+      # updating sm, by subtracting the oldest element (x[i-1]) 
+      # and adding the new one (x[i+k-1])
+      sm <- sm + x[i + k - 1] - x[i - 1]    
+      if (sm >= k2) pred[i] <- 1 else pred[i] <- 0
+    }
+  }
+  print(pred)
+  actual = x[(k + 1):n]    # x[(k + 1):n] is the actual value either 0 or 1
+  abs_error = abs(pred - actual)     # absolute error
+  res = mean(abs_error)    # mean absoulte error
+  return(res)
+}
+```
+
+```{r}
+pred_b(data, 3)
+```
+
+Use cumsum()
+```{r}
+m <- c(5,2,-3,8) 
+cumsum(m)
+```
+
+```{r}
+pred_c <- function(x, k) {
+  n <- length(x)
+  k2 <- k/2
+  pred <- vector(length = n - k)    # our predicted values
+  
+  # To handle the case i = 1 correctly, we need to prepend 0
+  # csx = 0 1 1 2 2 3 3 4 5 5 6. 
+  csx <- c(0, cumsum(x))
+  
+  for (i in 1:(n - k)) {
+    # Instead of applying sum() to a window of k consecutive elements in x, like this:
+    # sum(x[i:(i + (k - 1))
+    # we compute that same sum by finding the difference between the cumulative sums 
+    # at the end and beginning of that window, like this:
+    # csx[i + k] - csx[i]
+    if (csx[i + k] - csx[i] >= k2) 
+      pred[i] <- 1 
+    else 
+      pred[i] <- 0
+    }
+  print(pred)
+  
+  actual = x[(k + 1):n]    # x[(k + 1):n] is the actual value either 0 or 1
+  abs_error = abs(pred - actual)     # absolute error
+  res = mean(abs_error)    # mean absoulte error
+  return(res)
+}
+```
+
+```{r}
+pred_c(data, 3)
+```
+
+## 2.6 Vectorized Operations
+#### 2.6.1 Vector In, Vector Out
+```{r}
+u <- c(5, 2, 8)
+v <- c(1, 3, 9) 
+u > v
+```
+
+R function uses vectorized operations.
+```{r}
+w <- function(x) return(x + 1)
+w(u)
+```
+
+```{r}
+sqrt(1:9)    # also vectorized
+```
+
+```{r}
+# of course, c is not a scala, rather it's a vector of length 1
+f_with_scala_arg <- function(x, c) return((x + c)^2)
+```
+```{r}
+f_with_scala_arg(1:3, 0)
+f_with_scala_arg(1:3, 1)    # (1, 2, 3) + (1, 1, 1) = (2, 3, 4) then square 
+```
+
+f_with_scala_arg is not safe as we can provide a vector (of length > 1) to the c
+```{r}
+f_with_scala_arg(1:3, 1:3)    # (1, 2, 3) + (1, 2, 3) = (2, 4, 6) then square 
+```
+
+To ensure that c is a vector of length 1
+```{r}
+f_with_scala_arg_safe <- function(x, c) {
+  if (length(c) != 1) 
+    stop("vector c (of length > 1) not allowed")
+  return((x + c)^2) 
+}
+```
+
+```{r}
+f_with_scala_arg_safe(1:3, 1)
+# f_with_scala_arg_safe(1:3, 1:3)    #-> raise an exception!
+```
+
+
+#### 2.6.2 Vector In, Matrix Out
+
+```{r}
+z12 <- function(z) return(c(z, z^2))
+```
+
+Applying z12() to 5
+```{r}
+z12(5)
+```
+
+Apply this function to an eight-element vector
+```{r}
+x <- 1:8
+z12(x)
+```
+
+It might be more natural to have these arranged as an 8-by-2 matrix.
+But we can streamline things using sapply() (or simplify apply). 
+The call sapply(x,f) applies the function f() to each element of x and 
+then converts the result to a matrix.
+```{r}
+sapply(1:8,z12)
+```
+
+## 2.7 NA and NULL Values
+R actually has two such values: NA and NULL.
+
+#### 2.7.1 Using NA
+x contains NA
+```{r}
+x <- c(88, NA, 12, 168, 13) 
+mean(x)    # mean() refused to calculate, as one value in x was N
+mean(x, na.rm = T)
+```
+
+x contains NULL
+```{r}
+x <- c(88, NULL, 12, 168, 13)
+mean(x)    # R automatically skipped over the NULL value
+```
+
+#### 2.7.2 Using NULL
+One use case: build up vectors in loops, in which each iteration adds another element to the vector
+```{r}
+# build up a vector of the even numbers in 1:10 
+z <- NULL
+for (i in 1:10) if (i %% 2 == 0) z <- c(z, i) 
+z
+```
+
+If we have used NA: need to pick up an unwanted NA:
+```{r}
+z <- NA
+for (i in 1:10) if (i %% 2 == 0) z <- c(z, i) 
+z
+```
+
+NULL values really are counted as nonexistent
+```{r}
+u <- NULL
+length(u)
+v <- NA
+length(v)
+```
+
+NULL is a special R object with no mode. There are multiple NA values, one for each mode
+```{r}
+x <- c(5, NA, 12)
+mode(x[1])
+mode(x[2])
+
+y <- c("abc", "def", NA)
+mode(y[2])
+mode(y[3])
+```
+
+
+## 2.8 Filtering
+#### 2.8.1 Generating Filtering Indices
+```{r}
+z <- c(5, 2, -3, 8) 
+w <- z[z * z > 8]     # z * z > 8 becomes a boolean mask: TRUE FALSE  TRUE  TRUE
+w    # w got filtered by the boolean mask
+z    # z did not change
+```
+
+Define our extraction condition in terms of z, but then use the results to extract from another vector, y
+```{r}
+y <- c(1, 2, 30, 5)
+h <- c(1, 2, 30)
+j <- c(1, 2, 30, 5, 100)
+l <- c(1, 2, 30, 5, 100, 200)
+
+p <- y[z * z > 8]     # vector of 4 <- 4 booleans mask (TRUE FALSE TRUE TRUE)
+q <- h[z * z > 8]     # vector of 3 <- 4 booleans mask (TRUE FALSE TRUE TRUE)
+r <- j[z * z > 8]     # vector of 5 <- 4 booleans mask (TRUE FALSE TRUE TRUE)
+s <- l[z * z > 8]     # vector of 6 <- 4 booleans mask (TRUE FALSE TRUE TRUE)
+
+p
+q
+r
+s
+```
+
+We can also assign value. Replace all elements larger than a 3 with a 0
+```{r}
+x <- c(1, 3, 8, 2, 20)
+x[x > 3] <- 0
+x
+```
+
+#### 2.8.2 Filtering with the subset() Function
+```{r}
+x <- c(6, 1:3, NA, 12) 
+x
+x[x > 5]    # It does not handle NA
+```
+```{r}
+subset(x, x > 5)    # it handles NA by removing NA
+```
+
+
+#### 2.8.3 The Selection Function which()
+To find the index. Find the positions within z at which the condition occurs
+```{r}
+z <- c(5, 2, -3, 8)
+which(z * z > 8)
+```
+
+We can change the following code to a one line code.
+```{r}
+first1 <- function(x) {
+  for (i in seq(x)) {  # assuming we are sure there is such a value
+    if (x[i] == 1)
+      break
+  }
+  return(i)
+}
+```
+
+changed to 
+```{r}
+first1a <- function(x) return(which(x == 1)[1])    # which(y == 1) returns a vector. we need [1]
+```
+
+```{r}
+y <- c(4, 3, 5, 2, 1)
+first1(y)
+first1a(y)
+```
+That is much more compact. On the other hand, it’s wasteful, as it actu- ally finds all instances of 1s in x, when we need only the first. 
+
+## 2.9 A Vectorized if-then-else: The ifelse() Function
+ifelse(b, u, v) where b is a Boolean vector, and u and v are vectors.
+```{r}
+args(ifelse)
+```
+
+```{r}
+x <- 1:10
+y <- ifelse(x %% 2 == 0, 5, 12) # %% is the mod operator
+y
+```
+
+```{r}
+x <- c(5, 2, 9, 12)
+ifelse(x > 6, 2*x, 3*x)  # if x > 6 then multiply by 2, o.w. multiply by 3
+```
+
+#### 2.9.1 Extended Example: A Measure of Association
+Consider vectors x and y, which are time series, say for measurements of air temperature and pressure collected once each hour. We’ll define our measure of association between them to be the fraction of the time x and y increase or decrease together: that is, the proportion of i for which y[i + 1] - y[i] has the same sign as x[i + 1] - x[i]
+```{r}
+# findud() converts vector v to 1s, 0s, representing an element
+# increasing or not, relative to the previous one; output length is 1
+# less than input
+findud <- function(v) {    # find up or down
+  # v[-1] removes the first element
+  # v[-length(v)] removes the last element
+  vud <- v[-1] - v[-length(v)]    # 2nd element - 1st element, 3rd - 2nd, ...., nth - (n-1)th
+  return(ifelse(vud > 0, 1 ,-1))
+}
+
+udcorr <- function(x, y) {
+  # > lapply(list(x, y), findud)
+  #  [[1]]
+  #   [1]  1  1 -1  1 -1  1  1  1 -1  1
+  #  
+  #  [[2]]
+  #   [1] -1  1  1 -1  1  1  1 -1 -1 -1
+  ud <- lapply(list(x, y), findud)   # lapply to avoid duplicated findud calls
+  return(mean(ud[[1]] == ud[[2]]))
+}
+```
+
+```{r}
+x <- c(5, 12, 13, 3, 6, 0, 1, 15, 16, 8, 88)
+y <- c(4, 2, 3, 23, 6, 10, 11, 12, 6, 3, 2)
+udcorr(x, y)
+```
+
+Make it look nicer. A lag operator
+```{r}
+u <- c(1, 6, 7, 2, 3, 5)
+diff(u)
+```
+
+Use sign(), which converts the numbers in its argument vector to 1, 0, or −1, depending on whether they are positive, zero, or negative
+```{r}
+sign(diff(u))
+```
+
+```{r}
+udcorr_v2 <- function(x, y) mean(sign(diff(x)) == sign(diff(y)))
+udcorr_v2(x, y)
+```
+
+#### 2.9.2 Extended Example: Recoding an Abalone Data Set
+```{r}
+g <- c("M", "F", "F", "I", "M", "M", "F")
+ifelse(g == "M", 1, ifelse(g == "F", 2, 3))
+```
+
+```{r}
+grps <- list()
+for (gen in c("M", "F", "I")) grps[[gen]] <- which(g == gen)
+grps
+```
+
+Using all the data
+```{r}
+aba <- read.csv("Abalone.data", header = T, as.is = T)
+names(aba) <- c("Sex", "Length", "Diameter", "Height", 
+                "Whole weight", "Shucked weight", "Viscera weight", 
+                "Shell weight", "Rings")
+```
+
+```{r}
+grps <- list()
+for (gen in c("M", "F", "I")) grps[[gen]] <- which(aba == gen)
+abam <- aba[grps$M, ]
+abaf <- aba[grps$F, ]
+```
+
+```{r}
+plot(abam$Length, abam$Diameter)
+plot(abaf$Length, abaf$Diameter, pch = "x", new = FALSE)
+```
+
+## 2.10 Testing Vector Equality
+Using ==, won’t work.
+```{r}
+x <- 1:3
+y <- c(1, 3, 4)
+x == y
+```
+
+One option is to work with the vectorized nature of ==, applying the function all():
+```{r}
+all(x == y)
+```
+
+Or even better, we can simply use the identical function
+```{r}
+identical(x, y)
+```
+
+Be careful!
+```{r}
+x <- 1:2
+y <- c(1, 2)
+x
+y
+```
+
+However, using the identical function is dangerous
+```{r}
+identical(x, y)
+typeof(x)
+typeof(y)
+```
+
+## 2.11 Vector Element Names
+```{r}
+x <- c(1, 2, 4)
+names(x)
+```
+
+```{r}
+names(x) <- c("a", "b", "ab")
+names(x)
+```
+
+We can remove the names from a vector by assigning NULL:
+```{r}
+names(x) <- NULL
+x
+```
+
+We can even reference elements of the vector by name:
+```{r}
+x <- c(1,2,4)
+names(x) <- c("a", "b", "ab") 
+x["b"]
+```
+
+
+## 2.12 More on c()
+If the arguments you pass to c() are of differing modes, they will be reduced to a type that is the lowest common denominator, as follows:
+```{r}
+c(5, 2, "abc")
+```
+
+R considers the list mode to be of lower precedence in mixed expressions
+```{r}
+c(5, 2, list(a = 1, b = 4))
+
+```
+
+c() has a flattening effect for vec- tors, as in this example:
+```{r}
+c(5, 2, c(1.5, 6))
+```
+
+Those familiar with other languages, such as Python, may have expected the preceding code to produce a two-level object. That doesn’t occur with R vectors though you can have two-level lists, as you’ll see in Chapter 4.
