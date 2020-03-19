@@ -10,7 +10,7 @@ renv/
 
 # Session Data files
 .RData
-.rds
+*.rds
 
 # User-specific files
 .Ruserdata
