@@ -1,0 +1,351 @@
+---
+title: "chap5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### The Art of R Programming: A Tour of Statistical Software Design Book by Norman Matloff
+
+## 5.1 Creating Data Frames
+
+```{r}
+kids <- c("Jack", "Jill")
+ages <- c(12, 10)
+d <- data.frame(kids, ages, stringsAsFactors = FALSE)    # by default, TRUE. 
+d    # matrix-like viewpoint
+```
+
+#### 5.1.1. Accessing Data Frames
+d is a list
+```{r}
+d[[1]]
+```
+
+```{r}
+d$kids     # clearer and safer than d[[1]] and d[, 1]
+```
+
+But we can treat it in a matrix-like fashion as well. For example, we can view column 1
+```{r}
+d[, 1]
+```
+
+```{r}
+str(d)
+```
+
+#### 5.1.2 Extended Example: Regression Analysis of Exam Grades Continued
+
+```{r}
+filepath = file.path(getwd(), 'exams')
+examsquiz <- read.table(filepath, header = TRUE)
+head(examsquiz)
+```
+
+## 5.2 Other Matrix-Lite Operations
+
+#### 5.2.1. Extracting Subdata Frames
+```{r}
+examsquiz[2:5, ]
+```
+
+```{r}
+# Since examsquiz[2:5,2] is a vector, R created a vector instead of another data frame
+examsquiz[2:5, 2]     
+```
+
+```{r}
+class(examsquiz[2:5, 2])
+```
+
+```{r}
+# By specifying drop=FALSE, as described for the matrix case in Section 3.6, we can keep it as a (one- column) data frame.
+examsquiz[2:5, 2, drop=FALSE]
+```
+
+```{r}
+class(examsquiz[2:5, 2, drop=FALSE])
+```
+
+Filtering
+```{r}
+examsquiz[examsquiz$Exam.1 >= 3.8 ,]
+```
+
+Same as 
+```{r}
+subset(examsquiz, Exam.1 <= 3.8)
+# e do not need to write this: subset(examsquiz, examsquiz$Exam.1 >= 3.8)
+```
+
+#### 5.2.2. More on Treatment of NA Values
+In some situations, we need to set the option na.rm=TRUE, explicitly telling R to ignore NA values. 
+```{r}
+x <- c(2, NA, 4)
+mean(x)
+```
+```{r}
+mean(x, na.rm=TRUE)
+```
+
+In some cases, we may wish to rid our data frame of any observation that has at least one NA value. A handy function for this purpose is complete.cases().
+```{r}
+kids <- c("Jack", NA, "Jillian", "John")
+states <- c("CA", "MA", "MA", NA)
+d4 <- data.frame(kids, states, stringsAsFactors = FALSE)    # by default, TRUE. 
+d4
+```
+
+```{r}
+complete.cases(d4)
+```
+
+```{r}
+d5 <- d4[complete.cases(d4), ]
+d5
+```
+Cases 2 and 4 were incomplete; hence the FALSE values in the output of complete.cases(d4). We then use that output to select the intact rows.
+
+#### 5.2.3. Using the rbind() and cbind() Functions and Alternatives
+```{r}
+d
+```
+
+In using rbind() to add a row, the added row is typically in the form of another data frame or list.
+```{r}
+rbind(d, list("Laura", 19))
+```
+
+You can also create new columns from old ones
+```{r}
+eq <- cbind(examsquiz, examsquiz$Exam.2 - examsquiz$Exam.1)
+class(eq)
+head(eq)
+```
+
+```{r}
+examsquiz$ExamDiff <- examsquiz$Exam.2 - examsquiz$Exam.1
+head(examsquiz)
+```
+
+```{r}
+examsquiz$ExamDiffSqrd <- (examsquiz$Exam.2 - examsquiz$Exam.1)**2
+head(examsquiz)
+```
+
+
+```{r}
+examsquiz <- subset(examsquiz, select=-c(ExamDiffSqrd))
+head(examsquiz)
+```
+
+We can even exploit recycling to add a column that is of a different length than those in the data frame:
+```{r}
+d
+```
+
+```{r}
+d$one <- 1
+d
+```
+
+#### 5.2.4. Applying apply()
+```{r}
+apply(examsquiz, 1, max)
+```
+
+#### 5.2.5. Extended Example: A Salary Study
+```{r}
+# Setting as.is to TRUE here is simply an alternate way 
+# to achieve stringsAsFactors=FALSE
+all2006 <- read.csv("2006_partial.csv", header = TRUE, as.is=TRUE)
+```
+
+Some filterings...
+```{r}
+# exclude hourly-wages
+all2006 <- all2006[all2006$Wage_Per == "Year", ]
+
+# exclue weird cases
+all2006 <- all2006[all2006$Wage_Offered_From > 20000, ]
+
+# exclue hrly prv wg
+all2006 <- all2006[all2006$Prevailing_Wage_Amount > 200, ]
+```
+
+Create a new column for the ratio between actual wage and prevailing wage:
+```{r}
+all2006$rat <- all2006$Wage_Offered_From / all2006$Prevailing_Wage_Amount
+```
+
+To calculate the median
+```{r}
+medrat <- function(dataframe) {
+  median_rat <- median(dataframe$rat, na.rm = TRUE) 
+  return(median_rat)
+}
+```
+
+Look for those 3 occupations
+```{r}
+# Use grep() function to identify the rows containing the given job title.
+se2006 <- all2006[grep("Software Engineer", all2006), ]
+ap2006 <- all2006[grep("Assistant Professor", all2006), ]
+cs2006 <- all2006[grep("Computer Scientist", all2006), ]
+```
+
+```{r}
+print(medrat(se2006))
+print(medrat(ap2006))
+print(medrat(cs2006))
+```
+
+Another aspect of interest was analysis by firm
+```{r}
+makecorp <- function(corpname) {
+  t <- all2006[all2006$Employer_Name == corpname, ]
+  return(t)
+}
+```
+
+```{r}
+corplist <- c("MORGAN STANLEY", "ms", 
+              "ITT INDUSTRIES", "itt")
+
+for (i in 1:(length(corplist)/2)) {
+  fullname <- corplist[2 * i - 1]
+  newdtf <- paste(corplist[2 * i], "2006", sep = "")
+  assign(newdtf, makecorp(fullname), pos=.GlobalEnv)
+}
+```
+
+```{r}
+ms2006
+```
+
+```{r}
+itt2006
+```
+
+## 5.3 Merging Data Frames
+Join
+```{r}
+kids <- c("Jack", "Jill", "Jillian", "John")
+states <- c("CA", "MA", "MA", "MI")
+d1 <- data.frame(kids, states, stringsAsFactors = FALSE)    # by default, TRUE. 
+d1    # matrix-like viewpoint
+```
+
+```{r}
+ages <- c(10, 7, 12)
+kids <- c("Jill", "Lillian", "Jack")
+d2 <- data.frame(ages, kids, stringsAsFactors = FALSE)    # by default, TRUE. 
+d2    # matrix-like viewpoint
+```
+
+```{r}
+d <- merge(d1, d2)
+d
+```
+
+The merge() function has named arguments by.x and by.y, which handle cases in which variables have similar information but different names in the two data frames.
+```{r}
+ages <- c(12, 10, 7)
+pals <- c("Jack", "Jill", "Lillian")
+d3 <- data.frame(ages, pals, stringsAsFactors = FALSE)
+d3
+```
+
+```{r}
+merge(d1, d3, by.x = "kids", by.y = "pals")
+```
+
+Duplicate matches will appear in full in the result, possibly in undesir- able ways.
+```{r}
+d1
+```
+```{r}
+d2a <- rbind(d2, list(15, "Jill"))
+d2a
+```
+There are two Jills in d2a. There is a Jill (age 10) in d1 who lives in Massachu- setts and another Jill (age 15) with unknown residence.
+
+```{r}
+merge(d1, d2a)
+```
+merge(d1, d2a) put "MA" for both Jills (age 10 and age 15) even though we did not specify the residence of another Jill (age 15)
+
+#### 5.3.1. Extended Example: An Employee Database
+```{r}
+# Could not find the data: DA, DB
+```
+
+
+## 5.4 Applying Functions to Data Frames
+#### 5.4.1. Using lapply() and sapply() on Data Frames
+```{r}
+kids <- c("Jack", "Jill")
+ages <- c(12, 10)
+d <- data.frame(kids, ages, stringsAsFactors = FALSE)    # by default, TRUE. 
+d    # matrix-like viewpoint
+```
+
+```{r}
+dl <- lapply(d, sort)
+dl
+```
+So, dl is a list consisting of two vectors, the sorted versions of kids and ages.
+
+Note that dl is a list.
+```{r}
+class(dl)
+```
+
+We could coerce it to a data frame.
+```{r}
+as.data.frame(dl)  # don't do this as it loses its original relation
+```
+But this would make no sense, as the correspondence between names and ages has been lost. Jack, for instance, is now listed as 10 years old instead of 12.
+
+#### 5.4.2 Extended Example: Applying Logistic Regression Models
+
+Prepare the abalone data:
+```{r}
+aba <- read.csv("Abalone.data", header = T, as.is = T)
+names(aba) <- c("Sex", "Length", "Diameter", "Height", 
+                "Whole weight", "Shucked weight", "Viscera weight", 
+                "Shell weight", "Rings")
+```
+
+We can use sapply() to fit eight single-predictor models—one for each of the eight variables other than gender in this data set—all in just one line of code.
+```{r}
+# exclude infants from the analysis
+abamf <- aba[aba$Sex != "I", ]
+```
+
+Fits a logistic model that predicts Sex from that column and hence from that explanatory variable. 
+```{r}
+lftn <- function(clmn) {
+  glm(as.factor(abamf$Sex) ~ clmn, family = binomial)$coef
+}
+```
+
+Call sapply() on the subdata frame in which column 1, named Sex, has been excluded. In other words, this is an eight-column subframe consisting of our eight explanatory variables. Thus, lftn() is called on each column of that subframe.
+```{r}
+loall <- sapply(abamf[, -1], lftn)
+```
+
+8 pairs of estiamted beta(i).
+```{r}
+loall
+```
+
+```{r}
+class(loall)
+```
+
+#### 5.4.3. Extended Example: Aids for Learning Chinese Dialects
+Could not find the data. 
