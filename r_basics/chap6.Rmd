@@ -1,0 +1,494 @@
+---
+title: "chap6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### The Art of R Programming: A Tour of Statistical Software Design Book by Norman Matloff
+
+## 6.1 Factors and Levels
+An R factor might be viewed simply as a vector with a bit more information added (though, as seen below, it’s different from this internally). That extra information consists of a record of the distinct values in that vector, called levels.
+```{r}
+x <-c(5, 12, 13, 12)
+xf <- factor(x)
+xf
+```
+
+```{r}
+str(xf)
+```
+
+```{r}
+unclass(xf)
+```
+
+The core of xf here is not (5, 12, 13, 12) but rather (1, 2, 3, 2).
+It means that our data consists first of a level-1 value, then level-2 and level-3 values, and finally another level-2 value.
+So the data has been recoded by level. The levels themselves are recorded too, of course, though as characters such as "5" rather than 5.
+
+```{r}
+length(xf)
+```
+
+We can anticipate future new levels, as seen here:
+```{r}
+xff <- factor(x, levels=c(5, 12, 13, 88))
+xff
+```
+
+Originally, xff did not contain the value 88, but in defining it, we allowed for that future possibility. Later, we did indeed add the value.
+```{r}
+xff[2] <- 88
+xff
+```
+
+By the same token, you cannot sneak in an “illegal” level. Here’s what happens when you try: 
+```{r}
+xff[2] <- 28
+xff   # xff does not change
+```
+
+A few extra examples:
+Factor is a data structure used for fields that takes only predefined, finite number of values (categorical data). In such case, we know the possible values beforehand and these predefined, distinct values are called levels.
+
+factor x has four elements and two levels. We can check if a variable is a factor or not using class() function.The levels of a factor can be checked using the levels() function
+```{r}
+y <- factor(c("single", "married", "married", "single"))
+class(y)
+levels(y)
+```
+
+```{r}
+y
+```
+
+The levels may be predefined even if not used.
+```{r}
+z <- factor(c("single", "married", "married", "single"), 
+            levels = c("single", "married", "divorced"));
+z
+```
+
+We see that levels are stored in a character vector and the individual elements are actually stored as indices.
+```{r}
+str(y)
+```
+
+```{r}
+str(z)
+```
+
+Factors are also created when we read non-numerical columns into a data frame.
+By default, data.frame() function converts character vector into factor. To suppress this behavior, we have to pass the argument stringsAsFactors = FALSE
+```{r}
+kids <- c("Jack", "Jill")
+ages <- c(12, 10)
+df <- data.frame(kids, ages)
+df$kids
+class(df$kids)
+```
+
+```{r}
+df2 <- data.frame(kids, ages, stringsAsFactors = FALSE)
+df2$kids
+class(df2$kids)
+```
+
+How to access components of a factor?
+```{r}
+z[3]    # access 3rd element
+```
+
+```{r}
+z[c(2, 4)]    # access 2nd and 4th element
+```
+
+```{r}
+z[-1]    # access all but the 1st element
+```
+
+```{r}
+boolean_mask <-c(TRUE, FALSE, FALSE, TRUE)
+z[boolean_mask]
+```
+
+How to modify a factor?
+Please note that we cannot choose values outside of its predefined levels.
+```{r}
+z[2] <- "divorced"
+z
+```
+
+```{r}
+z[3] <- "widowed"
+```
+
+A workaround to this is to add the value to the level first.
+```{r}
+levels(z) <- c(levels(z), "widowed")
+z[3] <- "widowed"
+z
+```
+
+
+## 6.2 Common Functions Used with Factors
+#### 6.2.1. The tapply() Function
+The call tapply(x, f, g) has x as a vector, f as a factor or list of factors, and g as a function.
+
+The operation performed by tapply(x, f, g) is to (temporarily) split x into groups, each group corresponding to a level of the factor (or a combination of levels of the factors in the case of multiple factors), and then apply g() to the resulting subvectors of x.
+```{r}
+ages <- c(25, 26, 55, 37, 21, 42)
+affils <- c("R", "D", "D", "R", "U", "D")
+tapply(ages, affils, mean)
+```
+```{r}
+df <- data.frame(ages, affils)
+for (affil in c("D", "R", "U")) {
+  cat(affil, mean(df[df$affils == affil, ]$ages), "\n")
+}
+```
+
+The function tapply() treated the vector ("R","D","D","R","U","D") as a factor with levels "D", "R", and "U".
+
+Two or more factors example:
+Interested in finding mean income, broken down by gender and age ( > 25?).
+
+```{r}
+d <- data.frame(list(gender = c("M", "M", "F", "M", "F", "F"),
+                     age = c(47, 59, 21, 32, 33, 24),
+                     income = c(55000, 88000, 32450, 76500, 123000, 45650))
+                )
+d
+```
+
+```{r}
+d$over25 <- ifelse(d$age > 25, "over 25", "less than 25")
+d
+```
+
+```{r}
+class(d$gender)
+class(d$over25)
+```
+
+```{r}
+tapply(d$income, list(d$gender, d$over25), mean)
+```
+
+#### 6.2.2. The split() Function
+In contrast to tapply(), which splits a vector into groups and then applies a specified function on each group, split() stops at that first stage, just forming the groups.
+```{r}
+split_result = split(d$income, list(d$gender, d$over25) )
+split_result
+```
+
+```{r}
+class(split_result)
+```
+
+```{r}
+split_result$`M.over 25`
+```
+
+The abalone example
+```{r}
+g <- c("M", "F", "F", "I", "M", "M", "F")
+split(1:7, g) 
+```
+The vector g, taken as a factor, has three levels: "M", "F", and "I". The indices corresponding to the first level are 1, 5, and 6, which means that g[1], g[5], and g[6] all have the value "M". So, R sets the M component of the output to elements 1, 5, and 6 of 1:7, which is the vector (1,5,6).
+
+Be careful!
+```{r}
+split(1:14, g)
+```
+
+Be careful!
+```{r}
+split(1:4, g)
+```
+
+#### 6.2.3. The by() Function
+Suppose we wish to do regression analyses of diameter against length separately for each gender code: males, females, and infants. At first, this seems like something tailor-made for tapply(), but the first argument of that function must be a vector, not a matrix or a data frame.
+
+The by() function can be used here. It works like tapply() (which it calls internally, in fact), but it is applied to objects rather than vectors. 
+
+Prepare the abalone data:
+```{r}
+aba <- read.csv("Abalone.data", header = T, as.is = T)
+names(aba) <- c("Sex", "Length", "Diameter", "Height", 
+                "Whole weight", "Shucked weight", "Viscera weight", 
+                "Shell weight", "Rings")
+```
+
+```{r}
+head(aba)
+```
+
+```{r}
+by(aba, aba$Sex, function(m) lm(m[, 2] ~ m[, 3]))
+```
+
+Calls to by() look very similar to calls to tapply(), with the first argument specifying our data, the second the grouping factor, and the third the func- tion to be applied to each group.
+
+Just as tapply() forms groups of indices of a vector according to levels of a factor, this by() call finds groups of row numbers of the data frame aba. That creates three subdata frames: one for each gender level of M, F, and I.
+
+The anonymous function we defined regresses the second column of its matrix argument m against the third column. This function will be called three times (once for each subdata frames) thus producing the three regression analyses.
+
+
+## 6.3 Working with Tables
+```{r}
+u <- c(22, 8, 33, 6, 8, 29, -2)
+factor_list <- list(c(5, 12, 13, 12, 13, 5, 13),    # the first factor
+           c("a", "bc", "a", "a", "bc", "a", "a")    # the second factor
+           )
+tapply(u, factor_list, length)
+```
+Here, tapply() again temporarily breaks u into subvectors, as you saw earlier, and then applies the length() function to each subvector. (Note that this is independent of what’s in u. Our focus now is purely on the factors.) 
+
+Those subvector lengths are the counts of the occurrences of each of the 3 × 2 = 6 combinations of the two factors. For instance, 5 occurred twice with "a" and not at all with "bc"; hence the entries 2 and NA in the first row of the output. In statistics, this is called a contingency table.
+
+Another way to create a contingency table:
+```{r}
+table(factor_list)
+```
+
+Why NA not zero (0) in the tapply(u, factor_list, length)?
+e.g. ct.dat: election-polling data, in which candidate X is running for reelection.
+In this case, we have asked five people the following two questions:
+• Do you plan to vote for candidate X?
+• Did you vote for X in the last election?
+```{r}
+ct <- read.table("ct.dat", header = TRUE)
+ct
+```
+
+The contingency table:
+```{r}
+cttab <- table(ct)
+cttab
+```
+
+We can also get one-dimensional counts, which are counts on a single factor, as follows:
+```{r}
+table(c(5, 12, 13, 12, 8, 5))
+```
+
+Here’s an example of a three-dimensional table, involving voters’ gen- ders, race (white, black, Asian, and other), and political views (liberal or conservative):
+```{r}
+v <- read.table("chap6_3d.dat", header = T)
+v
+```
+
+```{r}
+vt <- table(v)
+vt
+```
+In this case, it generates a table of gender and race for conservatives and then a corresponding table for liberals. For example, the second two- dimensional table says that there were two white male liberals.
+
+
+#### 6.3.1. Matrix/Array-Like Operations on Tables
+```{r}
+class(cttab)
+```
+
+We can access the table cell counts using matrix notation.
+```{r}
+cttab[1, 1]
+```
+
+```{r}
+cttab[1, ]
+```
+
+We can multiply the matrix by a scalar. For instance, here’s how to change cell counts to proportions:
+```{r}
+cttab/5
+```
+
+In statistics, the marginal values of a variable are those obtained when this variable is held constant while others are summed. In the voting example, the marginal values of the Vote.for.X variable are 2 + 0 = 2, 0 + 1 = 1, and 1 + 1 = 2. We can of course obtain these via the matrix apply() function:
+```{r}
+apply(cttab, 1, sum)
+```
+
+R supplies a function addmargins() for this purpose—that is, to find marginal totals. Here’s an example:
+```{r}
+marginal_values<- addmargins(cttab)
+marginal_values
+```
+Here, we got the marginal data for both dimensions at once, conve- niently superimposed onto the original table.
+
+```{r}
+class(marginal_values)
+```
+
+```{r}
+dim(marginal_values)
+```
+
+We can get the names of the dimensions and levels through dimnames(), as follows:
+```{r}
+dimnames(cttab)
+```
+
+#### 6.3.2. Extended Example: Extracting a Subtable
+We wish to eliminate the "Not Sure" entries and present a subtable.
+
+The function subtable() below performs subtable extraction. It has two arguments:
+• tbl: The table of interest, of class "table".
+• subnames: A list specifying the desired subtable extraction. Each component of this list is named after some dimension of tbl, and the value of that component is a vector of the names of the desired levels.
+
+```{r}
+subnames <- list(Vote.for.X = c("No", "Yes"),
+                 Vote.for.X.Last.Time = c("No", "Yes"))
+```
+
+```{r}
+subtable <- function(tbl, subnames) {
+  # get array of cell counts in tbl
+  # class(unclass(cttab)) == "matrix"
+  tblarray <- unclass(tbl)  
+  # we'll get the subarray of cell counts corresponding to subnames by
+  # calling do.call() on the "[" function; we need to build up a list
+  # of arguments first
+  dcargs <- list(tblarray)   # make it a list
+  ndims <- length(subnames)  # number of dimensions 
+  for (i in 1:ndims) {
+    dcargs[[i + 1]] <- subnames[[i]]
+  }  
+  # after the for loop, dcargs is
+  #   [[1]]
+  #           Voted.For.X.Last.Time
+  # Vote.for.X No Yes
+  #   No        2   0
+  #   Not Sure  0   1
+  #   Yes       1   1
+  # 
+  # [[2]]
+  # [1] "No"  "Yes"
+  # 
+  # [[3]]
+  # [1] "No"  "Yes"
+
+  # do.call makes it easy to call a function with a variable number of arguments.
+  subarray <- do.call("[", dcargs)    # class(subarray) == "matrix"
+  # after do.call, subarray is
+  #             Voted.For.X.Last.Time
+  # Vote.for.X No Yes
+  #        No   2   0
+  #        Yes  1   1
+   
+  # now we'll build the new table, consisting of the subarray, the
+  # numbers of levels in each dimension, and the dimnames() value, plus
+  # the "table" class attribute
+  dims <- lapply(subnames, length) 
+  # after lapply, dims is
+  #   $Vote.for.X
+  # [1] 2
+  # 
+  # $Vote.for.X.Last.Time
+  # [1] 2
+  
+  subtbl <- array(data = subarray, 
+                  dim = dims, 
+                  dimnames = subnames)    # class(subtbl) == "matrix"
+  
+  class(subtbl) <- "table"
+return(subtbl)
+}
+```
+
+```{r}
+subtable(cttab, subnames = subnames)
+```
+
+do.call: constructs and executes a function call from a name or a function and a list of arguments to be passed to it.
+```{r}
+do.call(sum, list(c(1, 2, 4, 1, 2), na.rm = TRUE))
+```
+```{r}
+do.call("+", list(4, 5))
+```
+
+```{r}
+d <- data.frame(a = rnorm(10, 10, 1),
+                b = rnorm(10, 200, 1))
+
+# bad - loop
+apply(d, 1, function(x) if (x[1] < x[2]) x[1] else x[2])
+
+# good - vectorized but same result
+pmin(d[[1]], d[[2]]) # use double brackets!
+
+# edited:
+# -------
+# bad: lapply
+data.frame(lapply(d, round, 1))
+
+# good: do.call faster than lapply
+do.call("round", list(d, digits = 1))
+```
+
+#### 6.3.3. Extended Example: Finding the Largest Cells in a Table
+
+```{r}
+# finds the cells in table tbl with the k highest frequencies; handling
+# of ties is unrefined
+tabdom <- function(tbl, k) {
+  # create a data frame representation of tbl, adding a Freq column
+  tbldf <- as.data.frame(tbl)
+  # determine the proper positions of the frequencies in a sorted order
+  freqord <- order(tbldf$Freq, decreasing=TRUE)
+  # rearrange the data frame in that order, and take the first k rows
+  dom <- tbldf[freqord, ][1:k, ]
+  return(dom)
+}
+```
+
+```{r}
+d <- c(5, 12, 13, 4, 3, 28, 12, 12, 9, 5, 5, 13, 5, 4, 12)
+dtab <- table(d)
+tabdom(dtab, 3)
+```
+
+```{r}
+tabdom(cttab, 2)
+```
+So the combination No-No was most frequent, with two instances, with the second most frequent being Yes-No, with one instance.
+
+```{r}
+as.data.frame(cttab)
+```
+Please note that this is not the original data frame ct from which the table cttab was constructed. It is simply a different presentation of the table itself. There is one row for each combination of the factors, with a Freq column added to show the number of instances of each combination. 
+
+## 6.4 Other Factor - and Table-Related Functions
+#### 6.4.1. THe aggregate() Function
+The aggregate() function calls tapply() once for each variable in a group. For example, in the abalone data, we could find the median of each variable, broken down by gender, as follows:
+```{r}
+# aba[,-1], is the entire data frame except for the first column, which is Sex itself.
+# the second arg must be a list
+aggregate(aba[, -1], list(aba$Sex), median)
+```
+
+#### 6.4.2. The cut() Function
+A common way to generate factors, especially for tables, is the cut() function.
+You give it a data vector x and a set of bins defined by a vector b. The function then determines which bin each of the elements of x falls into. (where the bins are defined to be the semi-open intervals (b[1], b[2]], (b[2], b[3]], ...)
+```{r}
+z <- c(0.88114802, 0.28532689, 0.58647376, 0.42851862,
+       0.46881514, 0.24226859, 0.05289197, 0.88035617)
+binmarks <- seq(from = 0.0, to = 1.0, by = 0.1)
+binmarks
+```
+
+```{r}
+cut(z, binmarks, labels = F)
+```
+This says that z[1], 0.88114802, fell into bin 9, which was (0.9, 1.0]; z[2], 0.28532689, fell into bin 3; and so on.
+
+The R function findInterval() would be useful for this, too.
+```{r}
+findInterval(z, binmarks)
+```
+
