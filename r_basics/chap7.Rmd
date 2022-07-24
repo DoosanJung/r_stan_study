@@ -333,7 +333,28 @@ A function—formally referred to as a closure in the R documentation— consist
 
 #### 7.6.1 The Top-Level Environment
 ```{r}
+w <- 12
+f <- function(y) {
+  d <- 8
+  h <- function() {
+    return(d * (w + y))
+  }
+  return(h())
+}
+```
 
+```{r}
+environment(f)
+```
+
+ls() lists the objects of an environment.
+```{r}
+ls()
+```
+
+More information with ls.str()
+```{r}
+ls.str()
 ```
 
 #### 7.6.2 The Scope Hierarchy

@@ -1,5 +1,6 @@
 # My first RStan run
-setwd("./8schools_example")
+getwd()
+setwd('/Users/doosansmacbookpro/Documents/Projects/r_stan_study/8schools_example')
 
 library("rstan")
 options(mc.cores = parallel::detectCores())

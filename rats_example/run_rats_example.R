@@ -1,4 +1,5 @@
-setwd("./rats_example")
+getwd()
+setwd('/Users/doosansmacbookpro/Documents/Projects/r_stan_study/rats_example')
 
 library("rstan")
 options(mc.cores = parallel::detectCores())
